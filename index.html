@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Unser Terminplaner</title>
+
+    <style>
+        /* Allgemeine Seitengestaltung */
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            max-width: 450px;
+            margin: 30px auto;
+        }
+
+        /* Weißer Bereich mit allen Eingabefeldern */
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        /* Eingabefelder und Buttons */
+        input, button {
+            box-sizing: border-box;
+            padding: 10px;
+            margin: 6px 0;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        /* Normale Buttons */
+        button {
+            background: #3478f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* Einzelner gespeicherter Termin */
+        .termin {
+            background: #eeeeee;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 6px;
+        }
+
+        /* Button zum Löschen eines Termins */
+        .entfernen {
+            background: #d9534f;
+        }
+
+        /* Button für die spätere Übertragung */
+        .senden {
+            background: #269b60;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h2>Wann hast du Zeit? 😊</h2>
+        <p>Wähle einen Tag und deine Uhrzeiten aus.</p>
+
+        <!-- Auswahl des Datums -->
+        <label for="datum">Datum:</label>
+        <input type="date" id="datum">
+
+        <!-- Auswahl der Startzeit -->
+        <label for="start">Von:</label>
+        <input type="time" id="start">
+
+        <!-- Auswahl der Endzeit -->
+        <label for="ende">Bis:</label>
+        <input type="time" id="ende">
+
+        <!-- Fügt einen Termin hinzu -->
+        <button onclick="terminHinzufuegen()">
+            Termin hinzufügen
+        </button>
+
+        <h3>Deine verfügbaren Zeiten:</h3>
+
+        <!-- Hier zeigt JavaScript die Termine an -->
+        <div id="terminListe"></div>
+
+        <!-- Späterer Versand an Google Sheets -->
+        <button class="senden" onclick="termineSenden()">
+            Verfügbarkeit absenden
+        </button>
+
+    </div>
+
+    <script>
+
+        // ======================================
+        // 1. GESPEICHERTE TERMINE LADEN
+        // ======================================
+
+        let termine = JSON.parse(
+            localStorage.getItem("termine") || "[]"
+        );
+
+        // Vorhandene Termine beim Start anzeigen
+        listeAktualisieren();
+
+
+        // ======================================
+        // 2. TERMINE IM BROWSER SPEICHERN
+        // ======================================
+
+        function termineSpeichern() {
+
+            localStorage.setItem(
+                "termine",
+                JSON.stringify(termine)
+            );
+
+        }
+
+
+        // ======================================
+        // 3. NEUEN TERMIN HINZUFÜGEN
+        // ======================================
+
+        function terminHinzufuegen() {
+
+            // Werte aus den Eingabefeldern lesen
+            const datum =
+                document.getElementById("datum").value;
+
+            const start =
+                document.getElementById("start").value;
+
+            const ende =
+                document.getElementById("ende").value;
+
+
+            // Prüfen, ob alle Felder ausgefüllt sind
+            if (!datum || !start || !ende) {
+
+                alert("Du musst scho alle Felder ausfüllen gell ;) sonst wird dat hier nix hehe");
+                return;
+
+            }
+
+
+            // Neuen Termin als Objekt speichern
+            termine.push({
+                datum: datum,
+                start: start,
+                ende: ende
+            });
+
+
+            // Termine dauerhaft im Browser speichern
+            termineSpeichern();
+
+
+            // Angezeigte Terminliste aktualisieren
+            listeAktualisieren();
+
+        }
+
+
+        // ======================================
+        // 4. TERMINLISTE ANZEIGEN
+        // ======================================
+
+        function listeAktualisieren() {
+
+            // HTML-Container für die Liste suchen
+            const liste =
+                document.getElementById("terminListe");
+
+            // Alte Anzeige entfernen
+            liste.innerHTML = "";
+
+
+            // Jeden gespeicherten Termin durchgehen
+            termine.forEach(function(termin, index) {
+
+                // Neues HTML-Div erzeugen
+                const element =
+                    document.createElement("div");
+
+                element.className = "termin";
+
+
+                // Text für den Termin erzeugen
+                const beschreibung =
+                    document.createElement("p");
+
+                beschreibung.textContent =
+                    termin.datum + " | " +
+                    termin.start + " - " +
+                    termin.ende;
+
+
+                // Button zum Entfernen erzeugen
+                const button =
+                    document.createElement("button");
+
+                button.className = "entfernen";
+                button.textContent = "Löschen";
+
+
+                // Klick-Ereignis für den Button
+                button.addEventListener("click", function() {
+
+                    terminEntfernen(index);
+
+                });
+
+
+                // Beschreibung und Button einfügen
+                element.appendChild(beschreibung);
+                element.appendChild(button);
+
+                // Fertigen Termin in der Liste anzeigen
+                liste.appendChild(element);
+
+            });
+
+        }
+
+
+        // ======================================
+        // 5. EINEN TERMIN ENTFERNEN
+        // ======================================
+
+        function terminEntfernen(index) {
+
+            // Termin aus dem Array löschen
+            termine.splice(index, 1);
+
+            // Neue Liste speichern
+            termineSpeichern();
+
+            // Anzeige aktualisieren
+            listeAktualisieren();
+
+        }
+
+
+        // ======================================
+        // 6. TERMINE ABSENDEN
+        // ======================================
+
+        function termineSenden() {
+
+    // Prüfen, ob Termine ausgewählt wurden
+    if (termine.length === 0) {
+        alert("Bitte mindestens einen Termin auswählen!");
+        return;
+    }
+
+    // URL unseres Google Apps Scripts
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzruIOuvgpZ2NVaf73Z79Y9RRAu_6_qZhL99t5TisN5Ovr7MxmNHF4fEV5PgnsfoQRa/exec";
+
+    // Daten für die Übertragung vorbereiten
+    const daten = {
+        termine: termine
+    };
+
+    // Daten an Google senden
+    fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+            "Content-Type": "text/plain"
+        },
+        body: JSON.stringify(daten)
+    });
+
+    // Hinweis für die Benutzerin
+    alert("Die Übermittlung wurde gestartet!");
+
+}
+
+    </script>
+
+</body>
+</html>
